@@ -1,0 +1,12 @@
+name: mcwf-cat
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - matplotlib
+  - qutip>=5.0
+  - pytest
+  - jupyter
+  - pip

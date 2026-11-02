@@ -1,0 +1,57 @@
+Project Proposal: Simulating Decoherence of
+Non-Classical Quantum States via the Monte Carlo
+Wavefunction
+Numerical Physics — Anna Iranzo & Andriana Misailidi
+October 20, 2026
+1 Introduction & Motivation
+Understanding environmental decoherence is fundamental to open quantum dynamics and quantum
+information. While the standard Lindblad master equation evolves an N × N density matrix ρ(t)
+with O(N2) memory scaling, the Monte Carlo Wavefunction (MCWF) method evolves an
+ensemble of N-dimensional pure state vectors |ψ(t)⟩ undergoing deterministic non-unitary evolution
+interspersed with stochastic quantum jumps (O(N) scaling).
+In this project, we propose to model the decoherence dynamics of macroscopic superpositions
+(Schr¨odinger cat states) subject to dissipative (photon loss) and dephasing environments.
+2 Physical Model & Numerical Formulation
+We consider a single bosonic cavity mode in a truncated Fock space (Ncut ≈ 40–60):
+• Schr¨odinger Cat State: |ψcat⟩ ∝ |α⟩ ± | − α⟩, parameterized by coherent amplitude α.
+MCWF Jump Algorithm: Between quantum jumps, each trajectory evolves under the effective
+non-Hermitian Hamiltonian:
+Heff = H0 −
+iℏ
+2
+∑︂
+k
+L
+†
+kLk, (1)
+where L =
+√
+κ a models photon loss (amplitude damping) and L =
+√γ a†a models pure dephasing.
+1. Draw a uniform random threshold r ∈ [0, 1).
+2. Integrate d
+dt|ψ⟩ = −
+i
+ℏHeff|ψ⟩ (e.g., RK4) until the squared norm decays to ∥|ψ(t)⟩∥2 ≤ r.
+3. Apply the stochastic collapse |ψ⟩ ← Lk|ψ⟩/∥Lk|ψ⟩∥, reset r, and re-normalize.
+4. Average over M independent trajectories to recover the density matrix: ¯ρ(t) = 1
+M
+∑︁M
+m=1 |ψ
+(m)
+(t)⟩⟨ψ
+(m)
+(t)|.
+3 Visualizations & Expected Results
+The primary visual deliverable will be phase-space animations and heatmaps of the Wigner quasiprobability distribution. Beyond that, we plan to verify how the decoherence timescale scales with
+the cat separation, reproducing the scaling behavior observed by Brune et al. We can also compare
+this dissipation with a pure dephasing channel by modifying the Lindblad jump operator.
+References
+[1] J. Dalibard, Y. Castin, and K. Mølmer, Phys. Rev. Lett. 68, 580 (1992).
+[2] M. B. Plenio and P. L. Knight, The quantum-jump approach to dissipative dynamics in quantum optics,
+Rev. Mod. Phys. 70, 101 (1998).
+1
+
+[3] M. Brune et al., Observing the Progressive Decoherence of the “Meter” in a Quantum Measurement (1996).
+[4] H. J. Carmichael, An Open Systems Approach to Quantum Optics, Springer (1993).
+2
