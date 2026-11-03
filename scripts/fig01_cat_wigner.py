@@ -23,3 +23,16 @@ fig.tight_layout()
 out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig01_cat_wigner.png"
 fig.savefig(out, dpi=150)
 print("Saved:", out)
+
+alphas=np.linspace(0,5,5)
+
+fig, axes= plt.subplots(1, len(alphas), figsize=(14, 3.6))
+for ax, alpha in zip(axes, alphas):
+    cat= cat_state(alpha, "even")
+    wig= qt.wigner(cat, np.linspace(-5, 5, 200), np.linspace(-5, 5, 200))
+    ax.contourf(np.linspace(-5, 5, 200), np.linspace(-5, 5, 200), wig, 100)
+    ax.set_title(f"α = {alpha:.1f}")
+fig.tight_layout()
+
+plt.title("Wigner function of the cat state")   
+plt.savefig("results/figures/single_mode_state.png")
