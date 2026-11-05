@@ -16,3 +16,4 @@ def plot_wigner(state, ax=None, lim=5.0, n=200, title=None):
     if title:
         ax.set_title(title)
     return im
+

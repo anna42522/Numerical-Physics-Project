@@ -4,7 +4,9 @@ import qutip as qt
 
 N_CUT = 60  # Fock-space truncation
 
-
+def coherent_state(alpha, N=N_CUT):
+    """Normalized |alpha>."""
+    return qt.coherent(N, alpha).unit()
 def cat_state(alpha, parity="even", N=N_CUT):
     """Normalized |alpha> ± |-alpha>. parity: 'even' (+) or 'odd' (-)."""
     sign = 1 if parity == "even" else -1
