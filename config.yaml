@@ -1,0 +1,22 @@
+#Physical system
+system:
+  N_cut: 40
+  alpha:
+  cat_parity:
+
+#Environmental parameters
+environment:
+  kappa: # Photon loss rate
+  gamma: # Pure dephasing rate
+
+#Numerical simulation
+simulation:
+  n_trajectories:
+  t_start:
+  t_final:
+  dt:
+  random_seed:
+
+#Visualization
+visualization:
+  wigner_points:
