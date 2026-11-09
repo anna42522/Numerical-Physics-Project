@@ -1,8 +1,8 @@
 #Physical system
 system:
-  N_cut: 40
-  alpha:
-  cat_parity:
+  N_cut: 60
+  alpha: 0
+  cat_parity: "odd"
 
 #Environmental parameters
 environment:

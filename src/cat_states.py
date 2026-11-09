@@ -2,29 +2,37 @@
 import numpy as np
 import qutip as qt
 
-N_CUT = 60  # Fock-space truncation
 
-def coherent_state(alpha, N=N_CUT):
-    """Normalized |alpha>."""
-    return qt.coherent(N, alpha).unit()
-def cat_state(alpha, parity="even", N=N_CUT):
+def coherent_state(alpha, Ncut):
+    """Normalized |alpha> in a truncated Fock space."""
+    return qt.coherent(Ncut, alpha).unit()
+
+
+def cat_state(alpha, Ncut, parity="even"):
     """Normalized |alpha> ± |-alpha>. parity: 'even' (+) or 'odd' (-)."""
+    if parity not in ("even", "odd"):
+        raise ValueError("parity must be 'even' or 'odd'")
+
+    if alpha == 0:
+        fock_number =0 if parity =="even" else 1
+        return qt.basis(Ncut,fock_number)
+
     sign = 1 if parity == "even" else -1
-    psi = qt.coherent(N, alpha) + sign * qt.coherent(N, -alpha)
+    psi = qt.coherent(Ncut, alpha) + sign * qt.coherent(Ncut, -alpha)
     return psi.unit()
 
 
-def loss_op(kappa, N=N_CUT):
+def loss_op(kappa, Ncut):
     """Photon loss (amplitude damping): L = sqrt(kappa) a."""
-    return np.sqrt(kappa) * qt.destroy(N)
+    return np.sqrt(kappa) * qt.destroy(Ncut)
 
 
-def dephasing_op(gamma, N=N_CUT):
-    """Pure dephasing: L = sqrt(gamma) a^dagger a."""
-    return np.sqrt(gamma) * qt.num(N)
+def dephasing_op(gamma, Ncut):
+    """Pure dephasing: L = sqrt(gamma) a†a."""
+    return np.sqrt(gamma) * qt.num(Ncut)
 
 
 def check_truncation(psi, tol=1e-6):
-    """Population in the last 5 Fock levels; should be negligible."""
+    """Population in the last five Fock levels; should be negligible."""
     p = np.abs(psi.full().ravel()) ** 2
     return p[-5:].sum() < tol
