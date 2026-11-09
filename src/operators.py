@@ -44,3 +44,12 @@ def create_operators(Ncut):
     parity = np.diag((-1.0)**np.arange(Ncut))
 
     return a, adag, n, parity
+
+
+
+def conju_T(op):
+
+    #Construct the conjugate transpose of an operator.
+
+    return op.conj().T
+
