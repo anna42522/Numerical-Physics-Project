@@ -13,9 +13,9 @@ def cat_state(alpha, Ncut, parity="even"):
     if parity not in ("even", "odd"):
         raise ValueError("parity must be 'even' or 'odd'")
 
-    if alpha == 0:
+    if alpha == 0: #for odd it aproximates |0> and for even it approximates to |1>
         fock_number =0 if parity =="even" else 1
-        return qt.basis(Ncut,fock_number)
+        return qt.basis(Ncut,fock_number) 
 
     sign = 1 if parity == "even" else -1
     psi = qt.coherent(Ncut, alpha) + sign * qt.coherent(Ncut, -alpha)
