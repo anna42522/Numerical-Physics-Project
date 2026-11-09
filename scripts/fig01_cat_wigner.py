@@ -185,7 +185,7 @@ def plot_wigner_3d_wave(alpha=2.5, parity="even", N=60, lim=5.0, n_pts=200, elev
     return surf
 
 
-def plot_wigner_3d_alphas():
+def plot_wigner_3d_alphas(azim=-75):
     """
     Plots a 2x2 grid of 3D Wigner functions for different alpha values,
     showing how the mountains separate and the ripples multiply as alpha increases.
@@ -194,7 +194,7 @@ def plot_wigner_3d_alphas():
     fig = plt.figure(figsize=(15, 12))
     
     for i, alpha in enumerate(alphas):
-        ax = fig.add_subplot(2, 2, i + 1, projection="3d")
+        ax = fig.add_subplot(1, 4, i + 1, projection="3d")
         plot_wigner_3d_wave(
             alpha=alpha,
             parity="even",
@@ -202,7 +202,7 @@ def plot_wigner_3d_alphas():
             lim=5.5,
             n_pts=160,
             elev=22,
-            azim=-75,
+            azim=azim,
             ax=ax,
             show_cbar=False
         )
@@ -216,5 +216,5 @@ def plot_wigner_3d_alphas():
 
 
 if __name__=="__main__":
-    #plot_wigner_3d_alphas()
+    plot_wigner_3d_alphas()
     plot_wigner_3d_wave(alpha=4, parity="even", N=N_CUT, lim=5.0, n_pts=200, elev=22, azim=0)
