@@ -1,5 +1,4 @@
 import numpy as np
-
 def create_operators(Ncut):
     """
     Construct the basic quantum operators 
@@ -52,4 +51,11 @@ def conju_T(op):
     #Construct the conjugate transpose of an operator.
 
     return op.conj().T
+
+
+def construct_rho(cat):
+    "cat will be a qutip Qobj, and we want to construct the density matrix rho = |cat><cat|"
+    psi=cat.full().ravel()  # Convert the Qobj to a 1D numpy array
+    return np.outer(psi, conju_T(psi))
+    
 
