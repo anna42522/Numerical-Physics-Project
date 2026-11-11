@@ -28,3 +28,4 @@ def check_truncation(psi, tol=1e-6):
     """Population in the last 5 Fock levels; should be negligible."""
     p = np.abs(psi.full().ravel()) ** 2
     return p[-5:].sum() < tol
+
