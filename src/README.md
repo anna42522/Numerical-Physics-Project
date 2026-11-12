@@ -5,6 +5,7 @@ Reusable code shared by all scripts and notebooks. Nothing in here should run on
 | File | Contents |
 |---|---|
 | `cat_states.py` | Cat state construction (even/odd), photon-loss and dephasing collapse operators, truncation check |
+| `mcwf.py` | Single quantum-jump trajectories and ensemble-averaged density matrices |
 | `plotting.py` | Plotting helpers, e.g. Wigner function heatmaps |
 | `validation.py` *(planned)* | `mcsolve` vs `mesolve` comparison, analytical checks, convergence in M |
 | `decoherence.py` *(planned)* | Sweep in α, extraction and fit of the decoherence time τ_D |
