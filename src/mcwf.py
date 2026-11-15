@@ -50,9 +50,19 @@ def mcwf_step(Heff, psi, dt, rng, jump_ops, hbar=1.0):
 
 def jump_operator_from_list(jump_ops, rng, delta_p, psi, dt):
 
+    """Finds the operator that will apply in that jump"""
+    """Inputs:
+        jump_ops: list of jumps operators
+        rng: random number, used to choose the operator
+        delta_p: probability of jump
+        psi: state of the system
+        dt: time jump
+    """
+
     if len(jump_ops) == 0:
         raise ValueError("The list of jump operators is empty.")
     elif len(jump_ops) == 1:
+        #<ψ(t)|L_m^† L_m|ψ(t)>
         return jump_ops[0], np.vdot(psi, jump_ops[0].conj().T @ jump_ops[0] @ psi).real
     else:
         probs_of_operators = []
@@ -99,6 +109,10 @@ def mcwf_trajectory(Heff,jump_ops, rng, psi0, times):
     return np.array(psi_history), jumps_dt 
 
 def mcwf(Heff,jump_ops, psi0, times, N_traj, seed=42):
+    """
+    Runs multiple independent mcwf trajectories and averages their states to estimate the 
+    density matrix, rho.
+    """
     rng=np.random.default_rng(seed=seed)
     rho_history = np.zeros((len(times), len(psi0), len(psi0)), dtype=complex)    
     for traj in range(N_traj):
