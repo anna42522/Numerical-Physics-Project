@@ -1,13 +1,13 @@
 #Physical system
 system:
-  N_cut: 60
-  alpha: 0
+  N_cut: 30
+  alpha: 2
   cat_parity: "odd"
 
 #Environmental parameters
 environment:
-  kappa: # Photon loss rate
-  gamma: # Pure dephasing rate
+  kappa: 1.0 # Photon loss rate
+  gamma: 1.0 # Pure dephasing rate
 
 #Numerical simulation
 simulation:
