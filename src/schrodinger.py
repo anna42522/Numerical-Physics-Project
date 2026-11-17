@@ -1,7 +1,10 @@
 import numpy as np
 import scipy 
 import qutip 
-from operators import conju_T, construct_rho, create_operators
+try:
+    from src.operators import conju_T, construct_rho, create_operators
+except ImportError:
+    from operators import conju_T, construct_rho, create_operators
 
 """Want to obtain the function at t + dt """
 def schrodinger_rhs(Heff, psi, hbar=1.0):

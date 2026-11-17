@@ -1,6 +1,10 @@
 import numpy as np
-from schrodinger import schrodinger_rhs, RK4_step_sch
-from operators import get_jump_ops, conju_T
+try:
+    from src.schrodinger import schrodinger_rhs, RK4_step_sch
+    from src.operators import get_jump_ops
+except ImportError:
+    from schrodinger import schrodinger_rhs, RK4_step_sch
+    from operators import get_jump_ops, conju_T
 
 
 def jump_prob(psi_evolved ):
@@ -168,7 +172,7 @@ if __name__ == "__main__":
     alpha = 3
     kappa = 1.0
     gamma = 0.1
-    times = np.linspace(0.0, 1.5, 76)
+    times = np.linspace(0.0, 4.5, 200)
 
     # Initial even cat state
     psi0 = cat_state(alpha, N, parity="even").full().ravel()
@@ -195,6 +199,10 @@ if __name__ == "__main__":
     print("Simulation complete!")
     print(f"Initial -> Purity: {purities[0]:.3f}, <n>: {means[0]:.3f}, Parity: {parities[0]:.3f}")
     print(f"Final   -> Purity: {purities[-1]:.3f}, <n>: {means[-1]:.3f}, Parity: {parities[-1]:.3f}")
+    from src.plotting import animate_wigner
 
+    animate_wigner(
+        states=rho_history,times=times, filename="results/figures/wigner_decoherence.gif",lim=4.5,n_grid=100, n_frames=45,fps=20
+    )
 
 
