@@ -202,7 +202,7 @@ if __name__ == "__main__":
     from src.plotting import animate_wigner
 
     animate_wigner(
-        states=rho_history,times=times, filename="results/figures/wigner_decoherence.gif",lim=4.5,n_grid=100, n_frames=45,fps=20
+        states=rho_history,times=times,alpha=alpha, filename="results/figures/wigner_decoherence.gif",lim=4.5,n_grid=100, n_frames=45,fps=20
     )
 
 

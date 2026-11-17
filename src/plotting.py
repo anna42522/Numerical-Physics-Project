@@ -120,6 +120,7 @@ def plot_convergence(N_traj_values, mean_errors, std_errors, path):
 def animate_wigner(
     states,
     times,
+    alpha=None,
     filename="results/figures/wigner_decoherence.gif",
     lim=5.0,
     n_grid=120,
@@ -193,7 +194,7 @@ def animate_wigner(
         ax.set_xlabel(r"Re($\alpha$)", fontsize=11)
         ax.set_ylabel(r"Im($\alpha$)", fontsize=11)
         ax.set_aspect("equal")
-        ax.set_title(rf"Wigner Function $W(\alpha)$ — $t = {t_val:.2f}/\kappa$", fontsize=12)
+        ax.set_title(rf"Wigner function — cat $\alpha={alpha}$, $\kappa t={t_val:.2f}$", fontsize=12)
         return im
 
     anim = FuncAnimation(fig, update, frames=len(selected_times), interval=1000 / fps)
