@@ -13,7 +13,7 @@ from src.mcwf import mcwf_solver
 from src.operators import create_operators
 from src.plotting import plot_wigner
 from src.hamiltonian import create_Heff
-
+from src.operators import get_jump_ops
 
 def main():
     alpha = 3.0
@@ -29,16 +29,21 @@ def main():
     a, _, n_op, parity_op = create_operators(N_CUT)
     H = np.zeros((N_CUT, N_CUT), dtype=complex)  # rotating frame: H_0 = 0
     observables = [n_op, parity_op]
-
+    loss_op, deph_op=get_jump_ops(kappa, gamma, a, n_op)
     # Run 1: pure photon loss (gamma = 0)
-    loss_op = np.sqrt(kappa) * a
+   # loss_op = np.sqrt(kappa) * a
     Heff_loss= create_Heff(H,[loss_op],hbar=1)
     rho_loss, purity_loss, n_loss, parity_loss = mcwf_solver(Heff=Heff_loss, jump_ops=[loss_op], psi0=psi0,times=times,observables=observables, N_traj=N_traj, seed=42) 
 
-    # Run 2: photon loss + pure dephasing (gamma > 0)
-    deph_op = np.sqrt(gamma) * n_op
+    #Run 2: photon loss + pure dephasing (gamma > 0)
+  #  deph_op = np.sqrt(gamma) * n_op
     Heff_both= create_Heff(H,[loss_op,deph_op],hbar=1)
-    _, purity_both, n_both, parity_both = mcwf_solver(Heff=Heff_both, jump_ops=[loss_op,deph_op], psi0=psi0,times=times,observables=observables, N_traj=N_traj, seed=42) 
+    rho_both, purity_both, n_both, parity_both = mcwf_solver(Heff=Heff_both, jump_ops=[loss_op,deph_op], psi0=psi0,times=times,observables=observables, N_traj=N_traj, seed=42) 
+   
+    """ only dephasing to inspect what it does"""
+ #   deph_op = np.sqrt(gamma) * n_op
+    Heff_deph= create_Heff(H,[deph_op],hbar=1)
+    rho_deph, purity_deph, n_deph, parity_deph = mcwf_solver(Heff=Heff_deph, jump_ops=[deph_op], psi0=psi0,times=times,observables=observables, N_traj=N_traj, seed=42) 
 
     # Validate our mcwf solver against QuTiP mesolve (pure photon loss)
     res_qt = qt.mesolve(
@@ -68,6 +73,8 @@ def main():
     # (a) Purity
     ax_pur.plot(times, purity_loss, color="crimson", lw=2.2, label=r"Photon loss ($\gamma=0$)")
     ax_pur.plot(times, purity_both, color="darkorange", lw=1.8, ls="--", label=rf"Loss + dephasing ($\gamma={gamma}\kappa$)")
+    ax_pur.plot(times, purity_deph, color="green", lw=1.8, ls=":", label=rf"Dephasing")
+
     ax_pur.axhline(0.5, color="gray", ls=":", lw=1.1, label="50/50 classical mix (0.5)")
     ax_pur.axvline(tau_dec, color="navy", ls="--", lw=1.1, alpha=0.75, label=rf"$\tau_{{\mathrm{{dec}}}} = {tau_dec:.3f}$")
     ax_pur.axvline(tau_diss, color="teal", ls="-.", lw=1.1, alpha=0.75, label=rf"$\tau_{{\mathrm{{diss}}}} = {tau_diss:.1f}$")
@@ -81,6 +88,8 @@ def main():
     # (b) Mean photon number
     ax_num.plot(times, n_loss, color="royalblue", lw=2.2, label="MCWF (pure loss)")
     ax_num.plot(times, n_both, color="darkorange", lw=1.8, ls="--", label="MCWF (loss + dephasing)")
+    ax_num.plot(times, n_deph, color="green", lw=1.8, ls=":", label=rf"Dephasing")
+
     ax_num.plot(times, n_loss[0] * np.exp(-kappa * times), color="black", ls=":", lw=1.5, label=r"Analytical $\langle\hat{n}_0\rangle e^{-\kappa t}$")
     ax_num.axvline(tau_dec, color="navy", ls="--", lw=1.1, alpha=0.75)
     ax_num.axvline(tau_diss, color="teal", ls="-.", lw=1.1, alpha=0.75)
@@ -93,6 +102,8 @@ def main():
     # (c) Parity
     ax_par.plot(times, parity_loss, color="purple", lw=2.2, label=r"Photon loss ($\gamma=0$)")
     ax_par.plot(times, parity_both, color="darkorange", lw=1.8, ls="--", label=rf"Loss + dephasing ($\gamma={gamma}\kappa$)")
+    ax_par.plot(times, parity_deph, color="green", lw=1.8, ls=":", label=rf"Dephasing")
+
     ax_par.axhline(0.0, color="gray", ls=":", lw=1.0)
     ax_par.axvline(tau_dec, color="navy", ls="--", lw=1.1, alpha=0.75, label=rf"$\tau_{{\mathrm{{dec}}}} = {tau_dec:.3f}$")
     ax_par.axvline(tau_diss, color="teal", ls="-.", lw=1.1, alpha=0.75, label=rf"$\tau_{{\mathrm{{diss}}}} = {tau_diss:.1f}$")
@@ -114,7 +125,8 @@ def main():
     for idx_panel, (t_target, label) in enumerate(zip(snap_times, snap_labels)):
         ax_w = fig.add_subplot(gs_bot[0, idx_panel])
         idx_t = int(np.argmin(np.abs(times - t_target)))
-        im = plot_wigner(qt.Qobj(rho_loss[idx_t]), ax=ax_w, lim=6.5, n=200, title=label)
+      #  im = plot_wigner(qt.Qobj(rho_loss[idx_t]), ax=ax_w, lim=6.5, n=200, title=label)
+        im = plot_wigner(qt.Qobj(rho_both[idx_t]), ax=ax_w, lim=6.5, n=200, title=label)
         ax_w.set_xlabel(r"$x$ quadrature")
         if idx_panel == 0:
             ax_w.set_ylabel(r"$p$ quadrature")
@@ -129,7 +141,8 @@ def main():
         y=0.96,
     )
 
-    out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_decoherence.png"
+ #  out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_decoherence.png"
+    out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_oeach_noise_separate.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=180, bbox_inches="tight")
     print("Saved figure to:", out)
