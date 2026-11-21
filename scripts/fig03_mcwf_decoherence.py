@@ -110,7 +110,7 @@ def main():
     ax_par.set_title(r"Quantum Coherence via Parity $\langle \hat{\Pi}(t) \rangle$")
     ax_par.set_xlabel(r"Dimensionless time $\kappa t$")
     ax_par.set_ylabel(r"Parity $\langle \hat{\Pi} \rangle$")
-    ax_par.set_ylim(-0.08, 1.08)
+    ax_par.set_ylim(-0.2, 1.08)
     ax_par.grid(True, alpha=0.25)
     ax_par.legend(fontsize=8, loc="upper center")
 
@@ -141,8 +141,8 @@ def main():
         y=0.96,
     )
 
- #  out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_decoherence.png"
-    out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_oeach_noise_separate.png"
+    out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_decoherence.png"
+ #  out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_oeach_noise_separate.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=180, bbox_inches="tight")
     print("Saved figure to:", out)
