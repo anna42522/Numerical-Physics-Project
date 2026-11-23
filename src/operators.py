@@ -57,5 +57,10 @@ def construct_rho(cat):
     "cat will be a qutip Qobj, and we want to construct the density matrix rho = |cat><cat|"
     psi=cat.full().ravel()  # Convert the Qobj to a 1D numpy array
     return np.outer(psi, conju_T(psi))
-    
 
+
+
+def get_jump_ops(kappa, gamma, a, n):
+    loss_op= np.sqrt(kappa) * a
+    dephasing_op= np.sqrt(gamma) * n
+    return loss_op, dephasing_op

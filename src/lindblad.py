@@ -3,6 +3,7 @@ import scipy
 import qutip 
 from operators import conju_T, construct_rho, create_operators
 from cat_states import loss_op, dephasing_op, coherent_state, cat_state
+from plotting import plot_results
 #it returns: the time derivative of the density matrix
 def lindblad_function(H, jump_ops, rho):
     dissipator = 0
@@ -48,37 +49,37 @@ def purity_mean_parity(rho, op, parity_op):
     """
     return np.trace(rho@rho).real , np.trace(rho@op).real , np.trace(rho@parity_op).real
 
-def plot_results(times, purities, means, parities):
-    import matplotlib.pyplot as plt
+# def plot_results(times, purities, means, parities):
+#     import matplotlib.pyplot as plt
 
-    plt.figure(figsize=(12, 8))
+#     plt.figure(figsize=(12, 8))
 
-    plt.subplot(3, 1, 1)
-    plt.plot(times, purities, label='Purity', color='blue')
-    plt.ylabel('Purity')
-    plt.title('Purity over Time')
-    plt.grid()
-    plt.legend()
+#     plt.subplot(3, 1, 1)
+#     plt.plot(times, purities, label='Purity', color='blue')
+#     plt.ylabel('Purity')
+#     plt.title('Purity over Time')
+#     plt.grid()
+#     plt.legend()
 
-    plt.subplot(3, 1, 2)
-    plt.plot(times, means, label='Mean', color='orange')
-    plt.ylabel('Mean')
-    plt.title('Mean over Time')
-    plt.grid()
-    plt.legend()
+#     plt.subplot(3, 1, 2)
+#     plt.plot(times, means, label='Mean', color='orange')
+#     plt.ylabel('Mean')
+#     plt.title('Mean over Time')
+#     plt.grid()
+#     plt.legend()
 
-    plt.subplot(3, 1, 3)
-    plt.plot(times, parities, label='Parity', color='green')
-    plt.xlabel('Time')
-    plt.ylabel('Parity')
-    plt.title('Parity over Time')
-    plt.grid()
-    plt.legend()
+#     plt.subplot(3, 1, 3)
+#     plt.plot(times, parities, label='Parity', color='green')
+#     plt.xlabel('Time')
+#     plt.ylabel('Parity')
+#     plt.title('Parity over Time')
+#     plt.grid()
+#     plt.legend()
 
-    plt.tight_layout()
-    plt.savefig("results/figures/lindblad_observables_dephasing.png", dpi=150)
+#     plt.tight_layout()
+#     plt.savefig("results/figures/lindblad_observables_dephasing.png", dpi=150)
 
-def lindblad_solver(H, jump_ops, cat, times, observables=None):
+def lindblad_solver(H, jump_ops, cat, times, path, observables=None):
     """Evolve an initial cat state under the Lindblad equation and return history and observables."""
     rho0 = construct_rho(cat)
     purity, mean, parity = purity_mean_parity(rho0, observables[0], observables[1])
@@ -93,13 +94,14 @@ def lindblad_solver(H, jump_ops, cat, times, observables=None):
         purities[i], means[i], parities[i] = purity_mean_parity(
             rho, observables[0], observables[1]
         )
-    plot_results(times, purities, means, parities)
+    
+    plot_results(times, purities, means, parities, path)
     return rho_history, purities, means, parities
 if __name__ == "__main__":
     alpha = 3.0
     kappa = 1.0
     gamma = 0.1
-    psi0 = cat_state(alpha, parity="even", N=100)
+    psi0 = cat_state(alpha, parity="even", Ncut=100)
     H = np.zeros((psi0.shape[0], psi0.shape[0]), dtype=complex)  # rotating frame, H0 = 0
     times = np.linspace(0.0, 3.0, 1501)     
     a, adag, n, parity_op = create_operators(psi0.shape[0])
@@ -109,5 +111,6 @@ if __name__ == "__main__":
 #i made the operators again ebcause we need the as numpy objects for now
     loss_op= np.sqrt(kappa) * a
     dephasing_op= np.sqrt(gamma) * n
-    jump_ops = [dephasing_op] 
-    lindblad_solver(H, jump_ops, psi0, times, observables=observables)
+    jump_ops = [loss_op,dephasing_op] 
+    path="results/figures/lindblad_observables_loss_dephasing.png"
+    lindblad_solver(H, jump_ops, psi0, times, path, observables=observables)
