@@ -1,6 +1,6 @@
 #Physical system
 system:
-  N_cut: 30
+  N_cut: 15
   alpha: 2
   cat_parity: "odd"
 
