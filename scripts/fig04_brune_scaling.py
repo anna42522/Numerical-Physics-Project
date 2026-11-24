@@ -224,4 +224,9 @@ def scaling():
     print(f"{Fore.GREEN} Figure successfully generated and saved to {out_path}!")
 
 
+if __name__ == "__main__":
+    scaling()
+
+
+
 

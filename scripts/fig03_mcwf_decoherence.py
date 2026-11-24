@@ -159,4 +159,9 @@ def mcwf_stats():
     print(f"{Fore.GREEN}Saved figure for mcwf stats to: {out}")
 
 
+if __name__ == "__main__":
+    mcwf_stats()
+
+
+
 

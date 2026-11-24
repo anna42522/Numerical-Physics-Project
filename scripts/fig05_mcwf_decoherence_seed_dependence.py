@@ -244,4 +244,9 @@ def seed_dependence():
     print(f"{Fore.GREEN}Saved figure to: {out}")
 
 
+if __name__ == "__main__":
+    seed_dependence()
+
+
+
 

@@ -251,3 +251,8 @@ def Traj_dependence():
     print(f"{Fore.GREEN}Saved figure to: {out}")
 
 
+if __name__ == "__main__":
+    Traj_dependence()
+
+
+

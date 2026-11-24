@@ -277,4 +277,9 @@ def process(compute_rho=True):
     print(f"{colorama.Fore.GREEN}Animation complete! - results in {gif_path}")
 
 
+if __name__ == "__main__":
+    process()
+
+
+
 

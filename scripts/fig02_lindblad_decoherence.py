@@ -140,4 +140,9 @@ def lindblad_stats():
     print(f"{Fore.GREEN}Saved figure about lindblad statistics to: {out}")
 
 
+if __name__ == "__main__":
+    lindblad_stats()
+
+
+
 
