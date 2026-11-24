@@ -118,20 +118,20 @@ def mcwf_trajectory(Heff,jump_ops, rng, psi0, times):
 
     return np.array(psi_history), jumps_dt 
 
-# def mcwf(Heff, jump_ops, psi0, times, N_traj=_DEFAULT_NTRAJ, seed=_DEFAULT_SEED):
-#     """
-#     Runs multiple independent mcwf trajectories and averages their states to estimate the 
-#     density matrix, rho.
-#     """
-#     rng = np.random.default_rng(seed=seed)
-#     rho_history = np.zeros((len(times), len(psi0), len(psi0)), dtype=complex)
-#     for traj in range(N_traj):
-#         psi_history, jumps_dt = mcwf_trajectory(Heff=Heff, jump_ops=jump_ops, rng=rng, psi0=psi0, times=times)
-#         # Vectorized outer product across all time steps: |psi(t)><psi(t)|
-#         rho_history += psi_history[:, :, None] * psi_history[:, None, :].conj()
+def mcwf(Heff, jump_ops, psi0, times, N_traj=_DEFAULT_NTRAJ, seed=_DEFAULT_SEED):
+    """
+    Runs multiple independent mcwf trajectories and averages their states to estimate the 
+    density matrix, rho.
+    """
+    rng = np.random.default_rng(seed=seed)
+    rho_history = np.zeros((len(times), len(psi0), len(psi0)), dtype=complex)
+    for traj in range(N_traj):
+        psi_history, jumps_dt = mcwf_trajectory(Heff=Heff, jump_ops=jump_ops, rng=rng, psi0=psi0, times=times)
+        # Vectorized outer product across all time steps: |psi(t)><psi(t)|
+        rho_history += psi_history[:, :, None] * psi_history[:, None, :].conj()
 
-#     rho_history /= N_traj
-#     return rho_history
+    rho_history /= N_traj
+    return rho_history
 
 
 def mcwf_solver(
