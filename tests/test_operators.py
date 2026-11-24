@@ -49,6 +49,7 @@ def test_commutation_relation(operators):
     np.testing.assert_allclose(commutator, expected)
 
 @pytest.mark.norm
+@pytest.mark.week1
 def test_hermicity(operators):
     a, adag, n, parity = operators
 

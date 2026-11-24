@@ -8,19 +8,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import qutip as qt
 
-from src.cat_states import N_CUT, cat_state, check_truncation
+from src.cat_states import cat_state, check_truncation
+from src.config import load_config, get_time_grid
 from src.lindblad import lindblad_solver
 from src.operators import create_operators
 from src.plotting import plot_wigner
+from colorama import Fore
 
+def lindblad_stats():
+    cfg = load_config()
+    N_CUT = cfg["system"]["N_cut"]
+    alpha = cfg["system"]["alpha"]
+    parity = cfg["system"]["cat_parity"]
+    kappa = cfg["environment"]["kappa"]
+    gamma = cfg["environment"]["gamma"]
+    times = get_time_grid(cfg)
+    wigner_lim = cfg["visualization"]["wigner_lim"]
+    wigner_pts = cfg["visualization"]["wigner_points"]
+    snap_times = cfg["visualization"]["snap_times"]
 
-def main():
-    alpha = 3.0
-    kappa = 1.0
-    gamma = 0.2
-    times = np.linspace(0.0, 3.5, 1751)  # dt = 0.002 in units of 1/kappa
-
-    psi0 = cat_state(alpha, "even", N=N_CUT)
+    psi0 = cat_state(alpha, N_CUT, parity=parity)
     assert check_truncation(psi0), "Increase N_CUT for chosen alpha"
 
     a, _, n_op, parity_op = create_operators(N_CUT)
@@ -30,13 +37,13 @@ def main():
     # Run 1: pure photon loss (gamma = 0)
     loss_op = np.sqrt(kappa) * a
     rho_loss, purity_loss, n_loss, parity_loss = lindblad_solver(
-        H, [loss_op], psi0, times, observables
+        H, [loss_op], psi0, times, observables=observables
     )
 
     # Run 2: photon loss + pure dephasing (gamma > 0)
     deph_op = np.sqrt(gamma) * n_op
-    _, purity_both, n_both, parity_both = lindblad_solver(
-        H, [loss_op, deph_op], psi0, times, observables
+    rho_both, purity_both, n_both, parity_both = lindblad_solver(
+        H, [loss_op, deph_op], psi0, times, observables=observables
     )
 
     # Validate our RK4 Lindblad solver against QuTiP mesolve (pure photon loss)
@@ -102,18 +109,17 @@ def main():
     ax_par.grid(True, alpha=0.25)
     ax_par.legend(fontsize=8, loc="upper center")
 
-    # Bottom row: Wigner snapshots at key physical times (lim=6.5 encloses blobs at +-sqrt(2)*alpha = +-4.24)
-    snap_times = [0.0, 0.05, 0.25, 1.5]
+    # Bottom row: Wigner snapshots at key physical times
     snap_labels = [
         r"$t = 0$ (Pure Cat)",
-        r"$\kappa t = 0.05 \approx \tau_{\mathrm{dec}}$",
-        r"$\kappa t = 0.25$ (Classical Mix)",
-        r"$\kappa t = 1.50$ (Damping $\to |0\rangle$)",
+        rf"$\kappa t = {snap_times[1]:.2f} \approx \tau_{{\mathrm{{dec}}}}$",
+        rf"$\kappa t = {snap_times[2]:.2f}$ (Classical Mix)",
+        rf"$\kappa t = {snap_times[3]:.2f}$ (Damping $\to |0\rangle$)",
     ]
     for idx_panel, (t_target, label) in enumerate(zip(snap_times, snap_labels)):
         ax_w = fig.add_subplot(gs_bot[0, idx_panel])
         idx_t = int(np.argmin(np.abs(times - t_target)))
-        im = plot_wigner(qt.Qobj(rho_loss[idx_t]), ax=ax_w, lim=6.5, n=200, title=label)
+        im = plot_wigner(qt.Qobj(rho_both[idx_t]), ax=ax_w, lim=wigner_lim, n=wigner_pts, title=label)
         ax_w.set_xlabel(r"$x$ quadrature")
         if idx_panel == 0:
             ax_w.set_ylabel(r"$p$ quadrature")
@@ -131,8 +137,7 @@ def main():
     out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig02_lindblad_decoherence.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=180, bbox_inches="tight")
-    print("Saved figure to:", out)
+    print(f"{Fore.GREEN}Saved figure about lindblad statistics to: {out}")
 
 
-if __name__ == "__main__":
-    main()
+

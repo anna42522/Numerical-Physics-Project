@@ -1,7 +1,10 @@
 
 import numpy as np
 
-from src.operators import conju_T, create_operators
+try:
+    from src.operators import conju_T, create_operators
+except ImportError:
+    from operators import conju_T, create_operators
 
 def create_H0(Ncut, omega, hbar=1.0):
     """Create the hermitian Hamiltonian of our system

@@ -19,6 +19,7 @@ def test_trajectory_states_are_normalized_with_jumps():
     gamma=config["environment"]["gamma"]
     alpha = config["system"]["alpha"]
     cat_parity = config["system"]["cat_parity"]
+    seed = config["simulation"]["random_seed"]
     a, adag, n, parity = create_operators(ncut)
     jump_ops = get_jump_ops(kappa=kappa, gamma=gamma, a=a, n=n)
 
@@ -32,7 +33,7 @@ def test_trajectory_states_are_normalized_with_jumps():
     psi_history, jump_times = mcwf_trajectory(
         Heff=Heff,
         jump_ops=jump_ops,
-        rng=np.random.default_rng(seed=42),
+        rng=np.random.default_rng(seed=seed),
         psi0=psi0,
         times=times,
     )
@@ -50,6 +51,7 @@ def test_photon_loss_flips_cat_state_parity():
     config=load_config()
     ncut = config["system"]["N_cut"]
     alpha = config["system"]["alpha"]
+    seed = config["simulation"]["random_seed"]
     
     # we are only testing for phton loss
     kappa = 1.0
@@ -62,7 +64,7 @@ def test_photon_loss_flips_cat_state_parity():
     Heff = create_Heff(H0, jump_ops)
 
     psi0 = cat_state(
-        alpha=2.0,
+        alpha=alpha,
         Ncut=ncut,
         parity="even",
     ).full().ravel()
@@ -73,7 +75,7 @@ def test_photon_loss_flips_cat_state_parity():
     psi_history, jump_times = mcwf_trajectory(
         Heff=Heff,
         jump_ops=jump_ops,
-        rng=np.random.default_rng(seed=42),
+        rng=np.random.default_rng(seed=seed),
         psi0=psi0,
         times=times,
     )

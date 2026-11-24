@@ -9,31 +9,35 @@ import numpy as np
 import qutip as qt
 
 from src.cat_states import cat_state, check_truncation
+from src.config import load_config, get_time_grid
 from src.mcwf import mcwf_solver
 from src.operators import create_operators
 from src.plotting import plot_wigner
 from src.hamiltonian import create_Heff
 from src.operators import get_jump_ops
 
-def main():
-    alpha = 3.0
-    kappa = 1.0
-    gamma = 0.2
-    N_traj=300
-    N_CUT= 60
-    seeds= [1, 10, 42,123,2026]
-    times = np.linspace(0.0, 3.5, 1751)  # dt = 0.002 in units of 1/kappa
+def seed_dependence():
+    cfg = load_config()
+    N_CUT = cfg["system"]["N_cut"]
+    alpha = cfg["system"]["alpha"]
+    parity = cfg["system"]["cat_parity"]
+    hbar = cfg["system"].get("hbar", 1.0)
+    kappa = cfg["environment"]["kappa"]
+    gamma = cfg["environment"]["gamma"]
+    N_traj = cfg["simulation"]["n_trajectories"]
+    seeds = cfg["simulation"]["seed_list"]
+    times = get_time_grid(cfg)
 
-    psi0 = cat_state(alpha, N_CUT, parity="even")
+    psi0 = cat_state(alpha, N_CUT, parity=parity)
     assert check_truncation(psi0), "Increase N_CUT for chosen alpha"
 
     a, _, n_op, parity_op = create_operators(N_CUT)
     H = np.zeros((N_CUT, N_CUT), dtype=complex)  # rotating frame: H_0 = 0
     observables = [n_op, parity_op]
-    loss_op, deph_op=get_jump_ops(kappa, gamma, a, n_op)
+    loss_op, deph_op = get_jump_ops(kappa, gamma, a, n_op)
+
     # Run 1: pure photon loss (gamma = 0)
-   # loss_op = np.sqrt(kappa) * a
-    Heff_loss= create_Heff(H,[loss_op],hbar=1)
+    Heff_loss = create_Heff(H, [loss_op], hbar=hbar)
     n_loss_seed =[]
     purity_loss_seed=[]
     parity_loss_seed=[]
@@ -218,6 +222,10 @@ def main():
     for ax in axes[0, :]:
         ax.set_ylim(0.0, 1.06)
 
+    n_max = float(abs(alpha) ** 2) * 1.15
+    for ax in axes[1, :]:
+        ax.set_ylim(0.0, n_max)
+
     for ax in axes[2, :]:
         ax.set_ylim(-0.2, 1.08)
 
@@ -232,8 +240,8 @@ def main():
     out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig05_mcwf_decoherence_seed_dependence.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=180, bbox_inches="tight")
-    print("Saved figure to:", out)
+    from colorama import Fore
+    print(f"{Fore.GREEN}Saved figure to: {out}")
 
 
-if __name__ == "__main__":
-    main()
+

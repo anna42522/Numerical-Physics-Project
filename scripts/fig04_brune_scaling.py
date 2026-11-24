@@ -16,11 +16,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from src.cat_states import cat_state
+from src.config import load_config
 from src.hamiltonian import create_H0, create_Heff
 from src.lindblad import RK4_solver
 from src.mcwf import mcwf_solver
 from src.operators import create_operators, get_jump_ops
-
+from colorama import Fore
 
 from scipy.optimize import curve_fit
 
@@ -28,8 +29,7 @@ from scipy.optimize import curve_fit
 def extract_tau_dec(times, parities, alpha, kappa=1.0):
     """
     Extracts the characteristic decoherence time tau_dec from the initial exponential decay of parity.
-    Fits W(0,0,t) / Π(t) ~ exp(-t / τ_dec) for early times (κ * t << 1),
-    matching the method specified in Section 4 (Table 1) of the course handbook.
+    Fits W(0,0,t) / Π(t) ~ exp(-t / τ_dec) for early times (κ * t << 1)
     """
     # Use early times window where kappa * t << 1
     
@@ -57,10 +57,16 @@ def extract_tau_dec(times, parities, alpha, kappa=1.0):
 
 
 
-def main():
-    kappa = 1.0
-    gamma = 0.1
-    alphas = np.array([1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0])
+def scaling():
+    cfg = load_config()
+    kappa = cfg["environment"]["kappa"]
+    gamma = cfg["environment"]["gamma"]
+    parity = cfg["system"]["cat_parity"]
+    omega = cfg["system"].get("omega", 0.0)
+    N_traj = cfg["simulation"]["n_trajectories"]
+    seed = cfg["simulation"]["random_seed"]
+    alphas = np.array(cfg["system"]["alphas_sweep"], dtype=float)
+    alphas_mc = np.array(cfg["system"]["alphas_mcwf_sweep"], dtype=float)
 
     tau_loss_list = []
     tau_both_list = []
@@ -70,13 +76,13 @@ def main():
 
     for alpha in alphas:
         Ncut = int(max(36, alpha**2 + 4 * alpha + 16))
-        psi0 = cat_state(alpha, Ncut, parity="even").full().ravel()
+        psi0 = cat_state(alpha, Ncut, parity=parity).full().ravel()
         rho0 = np.outer(psi0, psi0.conj())
 
         a, _, n_op, parity_op = create_operators(Ncut)
         loss_op = np.sqrt(kappa) * a
         deph_op = np.sqrt(gamma) * n_op
-        H0 = create_H0(Ncut, omega=0.0)
+        H0 = create_H0(Ncut, omega=omega)
 
         # Scale time window to capture the full decoherence collapse
         t_max = min(1.0, max(0.2, 4.0 / (2.0 * kappa * alpha**2)))
@@ -102,30 +108,30 @@ def main():
     theory_tau = 1.0 / (2.0 * kappa * alphas**2)
 
     # --- Run MCWF stochastic solver on representative cat sizes ---
-    alphas_mc = np.array([1.5, 2.0, 2.5, 3.0])
     tau_mc_list = []
     mcwf_curves = {}
-    print(f"\nRunning MCWF ensemble solver for alpha in {alphas_mc} (N_traj=300)...")
+    print(f"\nRunning MCWF ensemble solver for alpha in {alphas_mc} (N_traj={N_traj}, seed={seed})...")
 
     for alpha in alphas_mc:
         Ncut = int(max(36, alpha**2 + 4 * alpha + 16))
-        psi0 = cat_state(alpha, Ncut, parity="even").full().ravel()
+        psi0 = cat_state(alpha, Ncut, parity=parity).full().ravel()
         a, _, n_op, parity_op = create_operators(Ncut)
         loss_op = np.sqrt(kappa) * a
-        H0 = create_H0(Ncut, omega=0.0)
+        H0 = create_H0(Ncut, omega=omega)
         Heff = create_Heff(H0, [loss_op])
 
         t_max = min(1.0, max(0.2, 4.0 / (2.0 * kappa * alpha**2)))
         times_mc = np.linspace(0.0, t_max, 251)
 
-        _, _, _, parities_mc = mcwf_solver(
+        means, parities_mc = mcwf_solver(
             Heff=Heff,
             jump_ops=[loss_op],
             psi0=psi0,
             times=times_mc,
             observables=[n_op, parity_op],
-            N_traj=300,
-            seed=42,
+            N_traj=N_traj,
+            seed=seed,
+            compute_rho=False,
         )
         tau_mc = extract_tau_dec(times_mc, parities_mc, alpha, kappa)
         tau_mc_list.append(tau_mc)
@@ -215,8 +221,7 @@ def main():
     out_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path, dpi=150)
     plt.close()
-    print(f"\nFigure successfully generated and saved to {out_path}!")
+    print(f"{Fore.GREEN} Figure successfully generated and saved to {out_path}!")
 
 
-if __name__ == "__main__":
-    main()
+

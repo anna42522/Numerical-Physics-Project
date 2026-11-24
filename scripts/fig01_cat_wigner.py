@@ -5,8 +5,16 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import numpy as np
 import qutip as qt
 import matplotlib.pyplot as plt
-from src.cat_states import cat_state, loss_op, check_truncation, N_CUT, coherent_state
+from src.cat_states import cat_state, loss_op, check_truncation, coherent_state
+from src.config import load_config
 from src.plotting import plot_wigner
+
+_CFG = load_config()
+N_CUT = _CFG["system"]["N_cut"]
+DEFAULT_ALPHA = _CFG["system"]["alpha"]
+DEFAULT_PARITY = _CFG["system"]["cat_parity"]
+DEFAULT_LIM = _CFG["visualization"]["wigner_lim"]
+DEFAULT_PTS = _CFG["visualization"]["wigner_points"]
 
 # alpha, kappa = 3.0, 1.0
 # psi0 = cat_state(alpha, "even")
@@ -26,21 +34,21 @@ from src.plotting import plot_wigner
 
 
 def plot_cat_wigner():
-    alphas=np.linspace(0,5,5)
+    alphas = np.linspace(0, 5, 5)
 
-    fig, axes= plt.subplots(1, len(alphas), figsize=(14, 3.6))
+    fig, axes = plt.subplots(1, len(alphas), figsize=(14, 3.6))
     for ax, alpha in zip(axes, alphas):
-        cat= cat_state(alpha, "even")
-        wig= qt.wigner(cat, np.linspace(-5, 5, 200), np.linspace(-5, 5, 200))
-        ax.contourf(np.linspace(-5, 5, 200), np.linspace(-5, 5, 200), wig, 100)
+        cat = cat_state(alpha, N_CUT, parity=DEFAULT_PARITY)
+        wig = qt.wigner(cat, np.linspace(-5, 5, DEFAULT_PTS), np.linspace(-5, 5, DEFAULT_PTS))
+        ax.contourf(np.linspace(-5, 5, DEFAULT_PTS), np.linspace(-5, 5, DEFAULT_PTS), wig, 100)
         ax.set_title(f"α = {alpha:.1f}")
     fig.tight_layout()
 
-    plt.title("Wigner function of the cat state")   
+    plt.title("Wigner function of the cat state")
     plt.savefig("results/figures/single_mode_state.png")
 
-def plot_coherent_wigner(alpha=3.0, lim=5.0, n_pts=300):
-    coh = coherent_state(alpha)
+def plot_coherent_wigner(alpha=DEFAULT_ALPHA, lim=5.0, n_pts=300):
+    coh = coherent_state(alpha, N_CUT)
     fig, ax = plt.subplots(figsize=(6, 5))
     im = plot_wigner(coh, ax=ax, lim=lim, n=n_pts, title=f"Wigner Function of Coherent State |α={alpha}⟩")
     ax.axhline(0, color="gray", linestyle="--", alpha=0.5)
@@ -54,7 +62,7 @@ def plot_coherent_wigner(alpha=3.0, lim=5.0, n_pts=300):
 
 
 import pathlib
-def plot_coherent_vs_cat_detailed(alpha=2.5, N=60, lim=5.0, n_pts=300):
+def plot_coherent_vs_cat_detailed(alpha=DEFAULT_ALPHA, N=N_CUT, lim=5.0, n_pts=300):
     """
     Plots a high-resolution, side-by-side comparison of:
     1. A single coherent state |alpha>
@@ -118,7 +126,7 @@ def plot_coherent_vs_cat_detailed(alpha=2.5, N=60, lim=5.0, n_pts=300):
     fig.savefig(out, dpi=200)
 
 
-def plot_wigner_3d_wave(alpha=2.5, parity="even", N=60, lim=5.0, n_pts=200, elev=22, azim=-75, ax=None, show_cbar=True):
+def plot_wigner_3d_wave(alpha=DEFAULT_ALPHA, parity=DEFAULT_PARITY, N=N_CUT, lim=5.0, n_pts=DEFAULT_PTS, elev=22, azim=-75, ax=None, show_cbar=True):
     """
     Plots the Wigner function as a 3D landscape/wave, with a transparent
     horizontal reference plane at W = 0.
@@ -130,7 +138,7 @@ def plot_wigner_3d_wave(alpha=2.5, parity="even", N=60, lim=5.0, n_pts=200, elev
     pvec = np.linspace(-lim, lim, n_pts)
     X, P = np.meshgrid(xvec, pvec)
     
-    cat = cat_state(alpha, parity=parity, N=N)
+    cat = cat_state(alpha, Ncut=N, parity=parity)
     W = qt.wigner(cat, xvec, pvec)
     vmax = np.abs(W).max()
     

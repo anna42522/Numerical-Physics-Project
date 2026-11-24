@@ -1,22 +1,41 @@
-#Physical system
+# Physical system parameters
 system:
-  N_cut: 30
-  alpha: 2
-  cat_parity: "odd"
+  N_cut: 60
+  alpha: 3.0
+  cat_parity: "even"
+  omega: 0.0          # Rotating frame frequency
+  hbar: 1.0           # Natural units
+  alphas_sweep: [1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]
+  alphas_mcwf_sweep: [1.5, 2.0, 2.5, 3.0]
 
-#Environmental parameters
+# Environmental dissipation and noise parameters
 environment:
-  kappa: 1.0 # Photon loss rate
-  gamma: 1.0 # Pure dephasing rate
+  kappa: 1.0          # Photon loss rate
+  gamma: 0.2          # Pure dephasing rate
 
-#Numerical simulation
+# Numerical simulation parameters
 simulation:
-  n_trajectories:
-  t_start:
-  t_final:
-  dt:
-  random_seed:
+  n_trajectories: 300
+  t_start: 0.0
+  t_final: 3.5
+  dt: 0.002
+  random_seed: 42
+  seed_list: [1, 10, 42, 123, 2026]
+  n_traj_list: [100, 500, 1000, 2000, 3000]
+  convergence:
+    N_cut: 12
+    alpha: 1.2
+    kappa: 0.3
+    gamma: 0.1
+    t_final: 0.5
+    n_steps: 101
+    n_traj_values: [100, 500, 1000, 5000, 10000]
+    seeds: [1, 2, 3, 4, 5]
 
-#Visualization
+# Visualization and plotting parameters
 visualization:
-  wigner_points:
+  wigner_points: 200
+  wigner_lim: 6.5
+  snap_times: [0.0, 0.05, 0.25, 1.5]
+  animation_frames: 45
+  animation_fps: 20

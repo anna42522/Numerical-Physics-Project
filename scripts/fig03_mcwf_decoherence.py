@@ -9,41 +9,54 @@ import numpy as np
 import qutip as qt
 
 from src.cat_states import cat_state, check_truncation
+from src.config import load_config, get_time_grid
 from src.mcwf import mcwf_solver
 from src.operators import create_operators
 from src.plotting import plot_wigner
 from src.hamiltonian import create_Heff
 from src.operators import get_jump_ops
+from colorama import Fore
 
-def main():
-    alpha = 3.0
-    kappa = 1.0
-    gamma = 0.2
-    N_traj=300
-    N_CUT= 60
-    times = np.linspace(0.0, 3.5, 1751)  # dt = 0.002 in units of 1/kappa
+def mcwf_stats():
+    cfg = load_config()
+    N_CUT = cfg["system"]["N_cut"]
+    alpha = cfg["system"]["alpha"]
+    parity = cfg["system"]["cat_parity"]
+    hbar = cfg["system"].get("hbar", 1.0)
+    kappa = cfg["environment"]["kappa"]
+    gamma = cfg["environment"]["gamma"]
+    N_traj = cfg["simulation"]["n_trajectories"]
+    seed = cfg["simulation"]["random_seed"]
+    times = get_time_grid(cfg)
+    wigner_lim = cfg["visualization"]["wigner_lim"]
+    wigner_pts = cfg["visualization"]["wigner_points"]
+    snap_times = cfg["visualization"]["snap_times"]
 
-    psi0 = cat_state(alpha, N_CUT, parity="even")
+    psi0 = cat_state(alpha, N_CUT, parity=parity)
     assert check_truncation(psi0), "Increase N_CUT for chosen alpha"
 
     a, _, n_op, parity_op = create_operators(N_CUT)
     H = np.zeros((N_CUT, N_CUT), dtype=complex)  # rotating frame: H_0 = 0
     observables = [n_op, parity_op]
-    loss_op, deph_op=get_jump_ops(kappa, gamma, a, n_op)
-    # Run 1: pure photon loss (gamma = 0)
-   # loss_op = np.sqrt(kappa) * a
-    Heff_loss= create_Heff(H,[loss_op],hbar=1)
-    rho_loss, purity_loss, n_loss, parity_loss = mcwf_solver(Heff=Heff_loss, jump_ops=[loss_op], psi0=psi0,times=times,observables=observables, N_traj=N_traj, seed=42) 
+    loss_op, deph_op = get_jump_ops(kappa, gamma, a, n_op)
 
-    #Run 2: photon loss + pure dephasing (gamma > 0)
-  #  deph_op = np.sqrt(gamma) * n_op
-    Heff_both= create_Heff(H,[loss_op,deph_op],hbar=1)
-    rho_both, purity_both, n_both, parity_both = mcwf_solver(Heff=Heff_both, jump_ops=[loss_op,deph_op], psi0=psi0,times=times,observables=observables, N_traj=N_traj, seed=42) 
-   
-    """ only dephasing to inspect what it does"""
- #   deph_op = np.sqrt(gamma) * n_op
-    Heff_deph= create_Heff(H,[deph_op],hbar=1)
-    rho_deph, purity_deph, n_deph, parity_deph = mcwf_solver(Heff=Heff_deph, jump_ops=[deph_op], psi0=psi0,times=times,observables=observables, N_traj=N_traj, seed=42) 
+    # Run 1: pure photon loss (gamma = 0)
+    Heff_loss = create_Heff(H, [loss_op], hbar=hbar)
+    rho_loss, purity_loss, n_loss, parity_loss = mcwf_solver(
+        Heff=Heff_loss, jump_ops=[loss_op], psi0=psi0, times=times, observables=observables, N_traj=N_traj, seed=seed
+    )
+
+    # Run 2: photon loss + pure dephasing (gamma > 0)
+    Heff_both = create_Heff(H, [loss_op, deph_op], hbar=hbar)
+    rho_both, purity_both, n_both, parity_both = mcwf_solver(
+        Heff=Heff_both, jump_ops=[loss_op, deph_op], psi0=psi0, times=times, observables=observables, N_traj=N_traj, seed=seed
+    )
+
+    # Run 3: only dephasing to inspect what it does
+    Heff_deph = create_Heff(H, [deph_op], hbar=hbar)
+    rho_deph, purity_deph, n_deph, parity_deph = mcwf_solver(
+        Heff=Heff_deph, jump_ops=[deph_op], psi0=psi0, times=times, observables=observables, N_traj=N_traj, seed=seed
+    ) 
 
     # Validate our mcwf solver against QuTiP mesolve (pure photon loss)
     res_qt = qt.mesolve(
@@ -114,19 +127,17 @@ def main():
     ax_par.grid(True, alpha=0.25)
     ax_par.legend(fontsize=8, loc="upper center")
 
-    # Bottom row: Wigner snapshots at key physical times (lim=6.5 encloses blobs at +-sqrt(2)*alpha = +-4.24)
-    snap_times = [0.0, 0.05, 0.25, 1.5]
+    # Bottom row: Wigner snapshots at key physical times
     snap_labels = [
         r"$t = 0$ (Pure Cat)",
-        r"$\kappa t = 0.05 \approx \tau_{\mathrm{dec}}$",
-        r"$\kappa t = 0.25$ (Classical Mix)",
-        r"$\kappa t = 1.50$ (Damping $\to |0\rangle$)",
+        rf"$\kappa t = {snap_times[1]:.2f} \approx \tau_{{\mathrm{{dec}}}}$",
+        rf"$\kappa t = {snap_times[2]:.2f}$ (Classical Mix)",
+        rf"$\kappa t = {snap_times[3]:.2f}$ (Damping $\to |0\rangle$)",
     ]
     for idx_panel, (t_target, label) in enumerate(zip(snap_times, snap_labels)):
         ax_w = fig.add_subplot(gs_bot[0, idx_panel])
         idx_t = int(np.argmin(np.abs(times - t_target)))
-      #  im = plot_wigner(qt.Qobj(rho_loss[idx_t]), ax=ax_w, lim=6.5, n=200, title=label)
-        im = plot_wigner(qt.Qobj(rho_both[idx_t]), ax=ax_w, lim=6.5, n=200, title=label)
+        im = plot_wigner(qt.Qobj(rho_both[idx_t]), ax=ax_w, lim=wigner_lim, n=wigner_pts, title=label)
         ax_w.set_xlabel(r"$x$ quadrature")
         if idx_panel == 0:
             ax_w.set_ylabel(r"$p$ quadrature")
@@ -145,8 +156,7 @@ def main():
  #  out = pathlib.Path(__file__).resolve().parents[1] / "results/figures/fig03_mcwf_oeach_noise_separate.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=180, bbox_inches="tight")
-    print("Saved figure to:", out)
+    print(f"{Fore.GREEN}Saved figure for mcwf stats to: {out}")
 
 
-if __name__ == "__main__":
-    main()
+

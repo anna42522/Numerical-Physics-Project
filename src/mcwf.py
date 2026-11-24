@@ -2,10 +2,17 @@ import numpy as np
 try:
     from src.schrodinger import schrodinger_rhs, RK4_step_sch
     from src.operators import get_jump_ops
+    from src.config import load_config, get_time_grid
 except ImportError:
     from schrodinger import schrodinger_rhs, RK4_step_sch
     from operators import get_jump_ops, conju_T
+    from config import load_config, get_time_grid
 
+_CFG = load_config()
+_DEFAULT_NTRAJ = _CFG["simulation"]["n_trajectories"]
+_DEFAULT_SEED = _CFG["simulation"]["random_seed"]
+_DEFAULT_HBAR = _CFG["system"].get("hbar", 1.0)
+import colorama
 
 def jump_prob(psi_evolved ):
     #<ψ(t+δt)|ψ(t+δt)>=1-δp
@@ -34,13 +41,12 @@ def mcwf_step(Heff, psi, dt, rng, jump_ops, hbar=1.0):
     
     if epsilon < delta_p:
         # A quantum jump occurs; normalize the state after the jump (eq. 12)
-        #we cannot have both operators (loss + dephasing) at the same exact time. 
-        #We know that δp=δp_loss + δp_dephasing, so we can choose one of the two jump operators based on their probabilities.
-        #equation 12
-        actual_single_operator, delta_p_op = jump_operator_from_list(jump_ops, rng, delta_p, psi, dt)
+        # Evaluate at the midpoint state to cancel O(dt^2) bias between RK4 no-jump damping and jump projection
+        psi_mid = 0.5 * (psi + psi_evolved)
+        actual_single_operator, delta_p_op = jump_operator_from_list(jump_ops, rng, delta_p, psi_mid, dt)
         
         #|φ(t+δt)>=C_m|φ(t)>/√(δp_m)/δt (eq. 12) 
-        jumped= actual_single_operator @ psi
+        jumped = actual_single_operator @ psi_mid
         #√(δp_m)/δt = sqrt(<ψ(t)|L_m^† L_m|ψ(t)>) (eq. 10) 
         psi_next = jumped / np.linalg.norm(jumped) #we do that so that we dont have to mess with δt. 
         jump_occurred = True
@@ -112,47 +118,91 @@ def mcwf_trajectory(Heff,jump_ops, rng, psi0, times):
 
     return np.array(psi_history), jumps_dt 
 
-def mcwf(Heff,jump_ops, psi0, times, N_traj, seed=42):
+# def mcwf(Heff, jump_ops, psi0, times, N_traj=_DEFAULT_NTRAJ, seed=_DEFAULT_SEED):
+#     """
+#     Runs multiple independent mcwf trajectories and averages their states to estimate the 
+#     density matrix, rho.
+#     """
+#     rng = np.random.default_rng(seed=seed)
+#     rho_history = np.zeros((len(times), len(psi0), len(psi0)), dtype=complex)
+#     for traj in range(N_traj):
+#         psi_history, jumps_dt = mcwf_trajectory(Heff=Heff, jump_ops=jump_ops, rng=rng, psi0=psi0, times=times)
+#         # Vectorized outer product across all time steps: |psi(t)><psi(t)|
+#         rho_history += psi_history[:, :, None] * psi_history[:, None, :].conj()
+
+#     rho_history /= N_traj
+#     return rho_history
+
+
+def mcwf_solver(
+    Heff,
+    jump_ops,
+    psi0,
+    times,
+    observables=None,
+    N_traj=_DEFAULT_NTRAJ,
+    seed=_DEFAULT_SEED,
+    compute_rho=True,
+):
     """
-    Runs multiple independent mcwf trajectories and averages their states to estimate the 
-    density matrix, rho.
-    """
-    rng=np.random.default_rng(seed=seed)
-    rho_history = np.zeros((len(times), len(psi0), len(psi0)), dtype=complex)    
-    for traj in range(N_traj):
-        psi_history, jumps_dt= mcwf_trajectory(Heff=Heff, jump_ops=jump_ops, rng=rng, psi0=psi0, times=times)
-        for t, psi_t in enumerate(psi_history):
-            #now we have one specific psi of the trajectory at a specific time t
-            rho_history[t]+=np.outer(psi_t, psi_t.conj())
-
-
-    rho_history = rho_history / N_traj
-    return rho_history
-
-
-def mcwf_solver(Heff, jump_ops, psi0, times, observables=None, N_traj=100, seed=42):
-    """
-    Runs the MCWF ensemble solver and computes purity, mean photon number, and parity over time.
+    Runs the MCWF ensemble solver.
+    - Linear observables (<n>, <Pi>) are always computed directly from the state vectors
+      <psi^(k)(t)|O|psi^(k)(t)> in O(N_cut) memory and time.
+    - Set compute_rho=True when you need non-linear ensemble quantities like Purity Tr(rho^2)
+      or phase-space Wigner plots.
+    - Set compute_rho=False when you only need expectation values (<n>, <Pi>), avoiding
+      any N_cut x N_cut density matrix allocation.
     """
     if hasattr(psi0, "full"):
         psi0 = psi0.full().ravel()
 
-    rho_history = mcwf(Heff=Heff, jump_ops=jump_ops, psi0=psi0, times=times, N_traj=N_traj, seed=seed)
+    rng = np.random.default_rng(seed=seed)
+    n_steps = len(times)
+    n_dim = len(psi0)
+    rho_history = np.zeros((n_steps, n_dim, n_dim), dtype=complex) if compute_rho else None
+    means = np.zeros(n_steps)
+    parities = np.zeros(n_steps)
 
-    purities = np.empty(len(times))
-    means = np.empty(len(times))
-    parities = np.empty(len(times))
+    has_obs = observables is not None and len(observables) >= 2
+    if has_obs:
+        obs0, obs1 = observables[0], observables[1]
+        # Check if observables are diagonal (like number operator n and parity Pi) for O(N_cut) evaluation
+        obs0_diag = np.diag(obs0).real if np.allclose(obs0, np.diag(np.diag(obs0))) else None
+        obs1_diag = np.diag(obs1).real if np.allclose(obs1, np.diag(np.diag(obs1))) else None
 
-    for i, rho in enumerate(rho_history):
-        purities[i] = np.trace(rho @ rho).real
-        if observables is not None and len(observables) >= 2:
-            means[i] = np.trace(rho @ observables[0]).real
-            parities[i] = np.trace(rho @ observables[1]).real
+    for traj in range(N_traj):
+        psi_history, _ = mcwf_trajectory(Heff=Heff, jump_ops=jump_ops, rng=rng, psi0=psi0, times=times)
+        if compute_rho:
+            rho_history += psi_history[:, :, None] * psi_history[:, None, :].conj()
 
-    return rho_history, purities, means, parities
+        if has_obs:
+            probs = np.abs(psi_history) ** 2
+            if obs0_diag is not None:
+                means += probs @ obs0_diag
+            else:
+                means += np.einsum("ti,ij,tj->t", psi_history.conj(), obs0, psi_history).real
+
+            if obs1_diag is not None:
+                parities += probs @ obs1_diag
+            else:
+                parities += np.einsum("ti,ij,tj->t", psi_history.conj(), obs1, psi_history).real
+
+    means /= N_traj
+    parities /= N_traj
+
+    if compute_rho:
+        rho_history /= N_traj
+        purities = np.einsum("tij,tji->t", rho_history, rho_history).real
+    else:
+        purities = None
+
+    if compute_rho:
+        return rho_history, purities, means, parities
+    else: 
+        return means, parities
 
 
-if __name__ == "__main__":
+def process(compute_rho=True):
     import pathlib
     import sys
 
@@ -167,42 +217,64 @@ if __name__ == "__main__":
     from cat_states import cat_state
     from operators import create_operators, get_jump_ops
     from hamiltonian import create_H0, create_Heff
-    from plotting import plot_results
-    N = 25
-    alpha = 3
-    kappa = 1.0
-    gamma = 0.1
-    times = np.linspace(0.0, 4.5, 200)
+    from plotting import plot_results, animate_wigner
 
-    # Initial even cat state
-    psi0 = cat_state(alpha, N, parity="even").full().ravel()
+    cfg = load_config()
+    N = cfg["system"]["N_cut"]
+    alpha = cfg["system"]["alpha"]
+    parity = cfg["system"]["cat_parity"]
+    omega = cfg["system"].get("omega", 0.0)
+    kappa = cfg["environment"]["kappa"]
+    gamma = cfg["environment"]["gamma"]
+    N_traj = cfg["simulation"]["n_trajectories"]
+    seed = cfg["simulation"]["random_seed"]
+    times = get_time_grid(cfg)
+
+    vis = cfg["visualization"]
+    wigner_lim = vis["wigner_lim"]
+    wigner_pts = vis["wigner_points"]
+    n_frames = vis["animation_frames"]
+    fps = vis["animation_fps"]
+
+    # Initial cat state from config
+    psi0 = cat_state(alpha, N, parity=parity).full().ravel()
 
     # Operators
-    H0 = create_H0(N, omega=0.0)
+    H0 = create_H0(N, omega=omega)
     a, adag, n_op, parity_op = create_operators(N)
-    jump_ops = (get_jump_ops(kappa=kappa, gamma=gamma, a=a, n=n_op))
+    jump_ops = get_jump_ops(kappa=kappa, gamma=gamma, a=a, n=n_op)
     Heff = create_Heff(H0, jump_ops)
     observables = [n_op, parity_op]
 
-    print(f"Running MCWF simulation with N_traj=50...")
+    print(f"Running MCWF simulation with N_traj={N_traj}, seed={seed}...")
     rho_history, purities, means, parities = mcwf_solver(
         Heff=Heff,
         jump_ops=jump_ops,
         psi0=psi0,
         times=times,
         observables=observables,
-        N_traj=500,
-        seed=42,
+        N_traj=N_traj,
+        seed=seed,
+        compute_rho=compute_rho
     )
-    path="results/figures/mcwf_observables_loss_dephasing.png"
+    path = "results/figures/mcwf_observables_loss_dephasing.png"
     plot_results(times, purities=purities, means=means, parities=parities, path=path)
-    print("Simulation complete!")
+    print(f"{colorama.Fore.GREEN}Simulation complete! - results in {path}")
     print(f"Initial -> Purity: {purities[0]:.3f}, <n>: {means[0]:.3f}, Parity: {parities[0]:.3f}")
     print(f"Final   -> Purity: {purities[-1]:.3f}, <n>: {means[-1]:.3f}, Parity: {parities[-1]:.3f}")
-    from src.plotting import animate_wigner
-
+    gif_path="results/figures/wigner_decoherence.gif"
     animate_wigner(
-        states=rho_history,times=times,alpha=alpha, filename="results/figures/wigner_decoherence.gif",lim=4.5,n_grid=100, n_frames=45,fps=20
+        states=rho_history,
+        times=times,
+        alpha=alpha,
+        filename=gif_path,
+        lim=wigner_lim,
+        n_grid=wigner_pts,
+        n_frames=n_frames,
+        fps=fps,
     )
+
+    print(f"{colorama.Fore.GREEN}Animation complete! - results in {gif_path}")
+
 
 
